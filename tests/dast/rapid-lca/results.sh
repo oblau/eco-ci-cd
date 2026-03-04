@@ -9,8 +9,6 @@ ARTIFACT_DIR=${ARTIFACT_DIR}
 # Name for rapiterm pod
 RANDOM_NAME=rapiterm-lca
 
-# Name of PVC in RapiDAST Resource, i.e. which PVC to mount to grab results
-PVC=rapidast-pvc
 IMAGE_REPOSITORY=quay.io/redhatproductsecurity/rapidast-term
 IMAGE_TAG=latest
 
@@ -21,11 +19,14 @@ metadata:
   name: $RANDOM_NAME
   namespace: rapidast-lca
 spec:
+  serviceAccountName: privileged-sa
   containers:
     - name: terminal
       image: '$IMAGE_REPOSITORY:$IMAGE_TAG'
       command: ['sleep', '300']
       imagePullPolicy: Always
+      securityContext:
+        privileged: true
       volumeMounts:
         - name: results-volume
           mountPath: /zap/results/
@@ -38,8 +39,9 @@ spec:
           memory: 100Mi
   volumes:
     - name: results-volume
-      persistentVolumeClaim:
-        claimName: $PVC
+      hostPath:
+        path: /tmp/rapidast-results-lca
+        type: DirectoryOrCreate
 EOF
 
 kubectl apply -f $TMP_DIR/$RANDOM_NAME
